@@ -25,7 +25,10 @@ module.exports = async () => {
 
   //Get one
   const getGameProfile = async ({userId}) => {
-    return await game_profile.findOne({userId: userId})
+    return await game_profile.findOne(
+      {userId: userId}, 
+      {projection: {_id: 0}}
+    )
   }
 
   //Update
