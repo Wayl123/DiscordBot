@@ -26,7 +26,7 @@ client.on('message', async (message) => {
       try {
         await database.createGameProfile({userId: message.author.id})
         message.channel.send('Profile created')
-      } catch {
+      } catch(error) {
         console.error(error.message)
         message.channel.send(`Error: ${error.message}`)
       }
@@ -39,7 +39,7 @@ client.on('message', async (message) => {
           throw new Error('Game profile has not been created, create profile with createprofile command.')
         }
         console.log(gameProfile)
-      } catch (error) {
+      } catch(error) {
         console.error(error.message)
       }
       break
