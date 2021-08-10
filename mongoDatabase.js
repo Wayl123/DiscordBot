@@ -9,8 +9,8 @@ module.exports = async () => {
 
   const db = dbClient.db()
 
-  const game_profiles = db.collection('game_profile')
-  const warships = db.collection('warship')
+  const game_profiles = db.collection('game_profiles')
+  const warships = db.collection('warships')
 
   //Game Profile
   //Create
@@ -27,20 +27,51 @@ module.exports = async () => {
 
   //Get one
   const getGameProfile = async ({userId}) => {
-    return await game_profiles.findOne(
-      {userId: userId}, 
-      {projection: {_id: 0}}
-    )
+    const aggregateOptions = [
+      {
+        $match: {
+          userId: userId
+        }
+      },
+      {
+        $lookup: {
+          from: 'warships',
+          localField: 'selected',
+          foreignField: '_id',
+          as: 'selected'
+        }
+      },
+      {
+        $unwind: {
+          path: '$selected',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          'selected._id': 0,
+          'selected.userId': 0
+        }
+      }
+    ]
+
+    return await game_profiles.aggregate(aggregateOptions).next()
   }
 
   //Update
   const addNewWarshipToGameProfile = async ({userId, name}) => {
+    const gameProfile = await game_profiles.findOne({userId: userId})
+    if (!gameProfile) {
+      throw new Error('Game profile has not been created, create profile with createprofile command')
+    }
+    
     const newWarship = await createWarship({userId, name})
 
     return await game_profiles.findOneAndUpdate(
       {userId: userId},
       {
-        $push: {warship: newWarship.insertedId}, 
+        $push: {warships: name}, 
         $set: {selected: newWarship.insertedId}
       }
     )

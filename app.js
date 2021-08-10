@@ -37,7 +37,25 @@ client.on('message', async (message) => {
         if (!gameProfile) {
           throw new Error('Game profile has not been created, create profile with createprofile command')
         }
-        console.log(gameProfile)
+
+        const user = await client.users.fetch(gameProfile.userId)
+        const profileEmbed = new Discord.MessageEmbed()
+          .setAuthor(user.username, user.avatarURL)
+          .setTitle('Game Profile')
+        if (gameProfile.selected) {
+          profileEmbed.addFields(
+            {name: 'Selected Ship:', value: gameProfile.selected.name},
+            {name: 'Tier', value: gameProfile.selected.tier, inline: true},
+            {name: 'Hp', value: gameProfile.selected.hp, inline: true},
+            {name: 'Atk', value: gameProfile.selected.atk, inline: true},
+            {name: 'Def', value: gameProfile.selected.def, inline: true},
+            {name: 'Turret', value: gameProfile.selected.turret, inline: true}
+          )
+        }
+        if (gameProfile.warships) {
+          profileEmbed.addField('All warships', gameProfile.warships)
+        }
+        message.channel.send(profileEmbed)
       } catch(error) {
         message.channel.send(`Error: ${error.message}`)
       }
