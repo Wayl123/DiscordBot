@@ -21,12 +21,22 @@ client.on('message', async (message) => {
     case 'ping':
       message.channel.send('pong')
       break
+    case 'createprofile':
+    case 'cp':
+      try {
+        await database.createGameProfile({userId: message.author.id})
+        message.channel.send('Profile created')
+      } catch {
+        console.error(error.message)
+        message.channel.send(`Error: ${error.message}`)
+      }
+      break
     case 'gameprofile':
+    case 'gp':
       try {
         let gameProfile = await database.getGameProfile({userId: message.author.id})
         if (!gameProfile) {
-          await database.createGameProfile({userId: message.author.id})
-          gameProfile = await database.getGameProfile({userId: message.author.id})
+          throw new Error('Game profile has not been created, create profile with createprofile command.')
         }
         console.log(gameProfile)
       } catch (error) {

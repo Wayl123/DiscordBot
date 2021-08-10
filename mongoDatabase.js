@@ -15,7 +15,7 @@ module.exports = async () => {
   const createGameProfile = async ({userId}) => {
     const gameProfile = await game_profile.findOne({userId: userId})
     if (gameProfile) {
-      throw Error ('Game profile already created.')
+      throw new Error('Game profile already created.')
     }
     
     return await game_profile.insertOne({
