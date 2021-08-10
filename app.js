@@ -27,7 +27,6 @@ client.on('message', async (message) => {
         await database.createGameProfile({userId: message.author.id})
         message.channel.send('Profile created')
       } catch(error) {
-        console.error(error.message)
         message.channel.send(`Error: ${error.message}`)
       }
       break
@@ -36,11 +35,32 @@ client.on('message', async (message) => {
       try {
         let gameProfile = await database.getGameProfile({userId: message.author.id})
         if (!gameProfile) {
-          throw new Error('Game profile has not been created, create profile with createprofile command.')
+          throw new Error('Game profile has not been created, create profile with createprofile command')
         }
         console.log(gameProfile)
       } catch(error) {
-        console.error(error.message)
+        message.channel.send(`Error: ${error.message}`)
+      }
+      break
+    case 'buy':
+      try {
+        const buyId = args.shift()
+
+        switch(buyId) {
+          case 'ship':
+            const name = args.shift()
+            if(!name) {
+              throw new Error('Missing ship name')
+            }
+
+            await database.addNewWarshipToGameProfile({userId: message.author.id, name})
+            message.channel.send(`Ship ${name} bought`)
+            break
+          default: 
+            message.channel.send('Invalid item to buy')
+        }
+      } catch(error) {
+        message.channel.send(`Error: ${error.message}`)
       }
       break
     default:
