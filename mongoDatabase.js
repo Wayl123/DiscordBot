@@ -11,6 +11,8 @@ module.exports = async () => {
 
   const game_profiles = db.collection('game_profiles')
   const warships = db.collection('warships')
+  const shop_values = db.collection('shop_values')
+  const shop_status = db.collection('shop_status')
 
   //Game Profile
   //Create
@@ -21,7 +23,7 @@ module.exports = async () => {
     }
     
     return await game_profiles.insertOne({
-      userId
+      userId,
     })
   }
 
@@ -30,7 +32,7 @@ module.exports = async () => {
     const aggregateOptions = [
       {
         $match: {
-          userId: userId
+          userId: userId,
         }
       },
       {
@@ -51,12 +53,22 @@ module.exports = async () => {
         $project: {
           _id: 0,
           'selected._id': 0,
-          'selected.userId': 0
+          'selected.userId': 0,
         }
-      }
+      },
     ]
 
     return await game_profiles.aggregate(aggregateOptions).next()
+  }
+
+  const getSelectedShip = async ({userId}) => {
+    const game_profile = await game_profiles.findOne({userId: userId})
+
+    if (!game_profile.selected) {
+      throw new Error('No ship selected')
+    }
+
+    return game_profile.selected
   }
 
   //Update
@@ -67,12 +79,13 @@ module.exports = async () => {
     }
     
     const newWarship = await createWarship({userId, name})
+    await createShopStatus({warshipId: newWarship.insertedId})
 
     return await game_profiles.findOneAndUpdate(
       {userId: userId},
       {
         $push: {warships: name}, 
-        $set: {selected: newWarship.insertedId}
+        $set: {selected: newWarship.insertedId},
       }
     )
   }
@@ -94,13 +107,82 @@ module.exports = async () => {
       hp: 10,
       atk: 10,
       def: 5,
-      turret: 1
+      turret: 1,
     })
+  }
+
+  //Shop
+  //Create
+  const createShopStatus = async ({warshipId}) => {
+    const status = await shop_status.findOne({warshipId: warshipId})
+    if (status) {
+      throw new Error('Shop status for this ship already exist')
+    }
+
+    return await shop_status.insertOne({
+      warshipId,
+      shopTier: 1,
+      hp: 0,
+      atk: 0,
+      def: 0,
+    })
+  }
+
+  //Get one
+  const getShop = async ({userId}) => {
+    const warshipId = await getSelectedShip({userId})
+
+    const aggregateOptions = [
+      {
+        $match: {
+          warshipId: warshipId,
+        }
+      },
+      {
+        $lookup: {
+          from: 'warships',
+          localField: 'warshipId',
+          foreignField: '_id',
+          as: 'warship'
+        }
+      },
+      {
+        $unwind: {
+          path: '$warship',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'shop_values',
+          localField: 'shopTier',
+          foreignField: 'tier',
+          as: 'shop'
+        }
+      },
+      {
+        $unwind: {
+          path: '$shop',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          'warship._id': 0,
+          'warship.userId': 0,
+          'shop._id': 0,
+        }
+      },
+    ]
+
+    return await shop_status.aggregate(aggregateOptions).next()
   }
 
   return {
     createGameProfile,
     getGameProfile,
-    addNewWarshipToGameProfile
+    addNewWarshipToGameProfile,
+    getShop,
   }
 }
